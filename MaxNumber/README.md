@@ -1,5 +1,4 @@
-## 统计单词出现次数
-
+## 找出文件中最大的数字
 
 ## 工作流程
 
@@ -39,15 +38,15 @@ javac -d bin -classpath xxx src/*.java
 
 cd bin
 
-jar -cvf WordCount.jar .
+jar -cvf MaxNumber.jar .
 
 ## 将数据放入hdfs
 
-hadoop fs -put input /hbase
+hadoop fs -put numbers /hbase/numbers
 
 ## 执行
 
-hadoop jar WordCount.jar WordCount /hbase/input /hbase/output
+hadoop jar MaxNumber.jar MaxNumber /hbase/numbers /hbase/maxnumber
 
 
 
