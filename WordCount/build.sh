@@ -5,5 +5,10 @@ export CLASSPATH=${HADS}common/hadoop-common-2.8.5.jar:${HADS}mapreduce/hadoop-m
 
 javac -classpath $CLASSPATH -d bin/ src/*.java
 
+cd bin
 
-jar -cvf WordCount.jar bin
+jar -cvf WordCount.jar .
+
+cd ..
+
+cp -f bin/WordCount.jar .

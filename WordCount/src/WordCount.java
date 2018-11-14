@@ -99,28 +99,6 @@ public class WordCount {
 
         Configuration conf = new Configuration();
 
-        //获取停词文件的路径，并放到DistributedCache中
-        for(int i=0;i<args.length;i++)
-        {
-        if("-skip".equals(args[i]))
-        {
-        DistributedCache.addCacheFile(new Path(args[++i]).toUri(), conf);
-        System.out.println(args[i]);
-        }           
-        }
-
-        //获取要展示的最小词频
-        for(int i=0;i<args.length;i++)
-        {
-        if("-greater".equals(args[i])){
-            min_num = Integer.parseInt(args[++i]);
-            System.out.println(args[i]);
-        }           
-        }
-
-        //将最小词频值放到Configuration中共享
-        conf.set("min_num", String.valueOf(min_num));   //set global parameter
-
         try{
             /**
              * run first-round to count
@@ -139,17 +117,15 @@ public class WordCount {
             //set mapper and reducer
             job.setMapperClass(WordCountMap.class);     
             job.setReducerClass(WordCountReduce.class);
+            job.setCombinerClass(WordCountReduce.class);
 
             //set path of input-output
             FileInputFormat.addInputPath(job, new Path(args[0]));
             FileOutputFormat.setOutputPath(job, new Path(tempDir));
-
-            System.out.println("wait for finish");
             job.waitForCompletion(true);        
         }catch(Exception e){
             e.printStackTrace();
         }finally{
-
             try {
                 //delete tempt dir
                 FileSystem.get(conf).deleteOnExit(new Path(tempDir));
