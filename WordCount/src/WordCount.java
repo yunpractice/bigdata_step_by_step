@@ -25,9 +25,6 @@ public class WordCount {
         Text word = new Text();
         final static IntWritable one = new IntWritable(1);
 
-        /**
-         *  map
-         * */
         public void map(LongWritable key, Text value, Context context) 
             throws IOException, InterruptedException {
 
@@ -45,38 +42,17 @@ public class WordCount {
         }
     }
 
-    /**
-     * Reduce: add all word-counts for a key
-     * */
     public static class WordCountReduce extends Reducer<Text, IntWritable, Text, IntWritable> {
-
-        int min_num = 0;
-
-        /**
-         * minimum showing words
-         * */
-        public void setup(Context context) {
-            min_num = Integer.parseInt(context.getConfiguration().get("min_num"));
-            System.out.println(min_num);
-        }
-
-        /**
-         * reduce
-         * */
         public void reduce(Text key, Iterable<IntWritable> values, Context context) 
             throws IOException, InterruptedException {
             int sum = 0;
             for (IntWritable val : values) {
                 sum += val.get();
             }
-            if(sum < min_num) return;
             context.write(key, new IntWritable(sum));
         }
     }
 
-    /**
-     * IntWritable comparator
-     * */
     private static class IntWritableDecreasingComparator extends IntWritable.Comparator {
 
         public int compare(WritableComparable a, WritableComparable b) {
@@ -88,27 +64,17 @@ public class WordCount {
         }
     }
 
-    /**
-     * main: run two job
-     * */
     public static void main(String[] args){
-        boolean exit = false;
-        String skipfile = null; //stop-file path
-        int min_num = 0;
-        String tempDir = "wordcount-temp-" + Integer.toString(new Random().nextInt(Integer.MAX_VALUE));
-
         Configuration conf = new Configuration();
-
         try{
-            /**
-             * run first-round to count
-             * */
+            FileSystem.get(conf).deleteOnExit(new Path(args[1]));
+            
             Job job = new Job(conf, "jiq-wordcountjob-1");
             job.setJarByClass(WordCount.class);
 
             //set format of input-output
             job.setInputFormatClass(TextInputFormat.class);
-            job.setOutputFormatClass(SequenceFileOutputFormat.class);
+            //job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
             //set class of output's key-value of MAP
             job.setOutputKeyClass(Text.class);
@@ -121,21 +87,13 @@ public class WordCount {
 
             //set path of input-output
             FileInputFormat.addInputPath(job, new Path(args[0]));
-            FileOutputFormat.setOutputPath(job, new Path(tempDir));
+            FileOutputFormat.setOutputPath(job, new Path(args[1]));
             job.waitForCompletion(true);        
         }catch(Exception e){
             e.printStackTrace();
         }finally{
-            try {
-                //delete tempt dir
-                FileSystem.get(conf).deleteOnExit(new Path(tempDir));
-                if(exit) System.exit(1);
-                System.exit(0);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            System.exit(0);
         }
     }
-
 }
 

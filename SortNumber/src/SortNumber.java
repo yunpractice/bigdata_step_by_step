@@ -17,13 +17,17 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 
-public class MaxNumber {
-    // Map: 将输入的文本数据转换为<word-1>的键值对
-    public static class WordCountMap extends Mapper<LongWritable, Text, Text, IntWritable> {
+public class SortNumber {
+    /**
+     * Map: 将输入的文本数据转换为<word-1>的键值对
+     * */
+    public static class SortNumberMap extends Mapper<LongWritable, Text, IntWritable, IntWritable> {
+        IntWritable n = new IntWritable(0);
+        final static IntWritable one = new IntWritable(1);
+
         public void map(LongWritable key, Text value, Context context) 
             throws IOException, InterruptedException {
 
-            int max = 0;
             String s = null;
             String line = value.toString().toLowerCase();
 
@@ -31,74 +35,34 @@ public class MaxNumber {
             StringTokenizer tokenizer = new StringTokenizer(line);
             while (tokenizer.hasMoreTokens()) {
                 s = tokenizer.nextToken();
-                int tmp = Integer.parseInt(s.toString());
-                if(tmp > max){
-                    max = tmp;
-                }
+                n.set(Integer.parseInt(s));
+                context.write(n, one);
             }
-            context.write(new Text("max"), new IntWritable(max));
         }
     }
 
-    // Reduce: add all word-counts for a key
-    public static class WordCountReduce extends Reducer<Text, IntWritable, Text, Text> {
-        int min_num = 0;
-
-        /**
-         * minimum showing words
-         * */
-        public void setup(Context context) {
-        }
-
-        /**
-         * reduce
-         * */
-        public void reduce(Text key, Iterable<IntWritable> values, Context context) 
+    public static class SortNumberReduce extends Reducer<IntWritable, IntWritable, Text, Text> {
+        private static IntWritable linenum = new IntWritable(1);
+        
+        public void reduce(IntWritable key, Iterable<IntWritable> values, Context context) 
             throws IOException, InterruptedException {
-            int max = 0;
-            for (IntWritable val : values) {
-                int tmp = val.get();
-                if(tmp > max){
-                    max = tmp;
-                }
-            }
-            context.write(key, new Text(Integer.toString(max)));
+            context.write(new Text(Integer.toString(linenum.get())),new Text(Integer.toString(key.get())));
+            linenum.set(linenum.get() + 1);
         }
     }
 
-    /**
-     * IntWritable comparator
-     * */
-    private static class IntWritableDecreasingComparator extends IntWritable.Comparator {
-
-        public int compare(WritableComparable a, WritableComparable b) {
-            return -super.compare(a, b);
-        }
-
-        public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
-            return -super.compare(b1, s1, l1, b2, s2, l2);
-        }
-    }
-
-    /**
-     * main: run two job
-     * */
     public static void main(String[] args){
-        boolean exit = false;
-
         Configuration conf = new Configuration();
         try{
-            /**
-             * run first-round to count
-             * */
-            Job job = new Job(conf, "jiq-wordcountjob-1");
-            job.setJarByClass(MaxNumber.class);
+            FileSystem.get(conf).deleteOnExit(new Path(args[1]));
+            
+            Job job = new Job(conf, "sort_number");
+            job.setJarByClass(SortNumber.class);
 
             //set format of input-output
             job.setInputFormatClass(TextInputFormat.class);
             //job.setOutputFormatClass(SequenceFileOutputFormat.class);
-
-            job.setMapOutputKeyClass(Text.class);
+            job.setMapOutputKeyClass(IntWritable.class);
             job.setMapOutputValueClass(IntWritable.class);
 
             //set class of output's key-value of MAP
@@ -106,9 +70,8 @@ public class MaxNumber {
             job.setOutputValueClass(Text.class);
 
             //set mapper and reducer
-            job.setMapperClass(WordCountMap.class);     
-            job.setReducerClass(WordCountReduce.class);
-            //job.setCombinerClass(WordCountReduce.class);
+            job.setMapperClass(SortNumberMap.class);     
+            job.setReducerClass(SortNumberReduce.class);
 
             //set path of input-output
             FileInputFormat.addInputPath(job, new Path(args[0]));
@@ -117,10 +80,8 @@ public class MaxNumber {
         }catch(Exception e){
             e.printStackTrace();
         }finally{
-                if(exit) System.exit(1);
-                System.exit(0);
+            System.exit(0);
         }
     }
-
 }
 
