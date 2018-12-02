@@ -7,8 +7,4 @@ javac -classpath $CLASSPATH -d bin/ src/*.java
 
 cd bin
 
-jar -cvf WordCount.jar .
-
-cd ..
-
-cp -f bin/WordCount.jar .
+jar -cvf InvertedIndex.jar .
